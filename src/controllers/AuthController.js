@@ -29,7 +29,7 @@ const registerUser = async (req, res) => {
     }
 };
 
-// 🔵 Login User & Generate JWT
+// Login User & Generate JWT
 const Login = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -56,7 +56,32 @@ const Login = async (req, res) => {
     }
 };
 
+// Refresh Access Token
+const refreshToken = async (req, res) => {
+    try {
+        const token = req.body.token;
+        if (!token) return res.status(400).json({ error: "Refresh token required" });
+
+        const storedToken = await Token.findOne({ token: token });
+        if (!storedToken) return res.status(403).json({ error: "Invalid refresh token" });
+
+        // Verify refresh token
+        jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
+            if (err) return res.status(403).json({ error: err.message });
+
+            // Generate new access token
+            const accessToken = jwt.sign({ email: decoded.email }, process.env.JWT_SECRET, { expiresIn: "15m" });
+
+            res.json({ accessToken });
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Server error" });
+    }
+};
+
+
 module.exports = {
     Login,
-    registerUser
+    registerUser,
+    refreshToken
 }
